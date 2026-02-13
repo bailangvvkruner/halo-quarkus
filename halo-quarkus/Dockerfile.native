@@ -1,46 +1,16 @@
-# 多阶段构建 - 构建阶段
-FROM ghcr.io/graalvm/native-image-community:21 AS builder
-
-WORKDIR /build
-
-# 复制 POM 文件
-COPY pom.xml .
-COPY halo-core/pom.xml halo-core/
-
-# 下载依赖（利用缓存）
-RUN mvn dependency:go-offline -B
-
-# 复制所有源代码
-COPY . .
-
-# 构建 JAR
-RUN mvn clean package -DskipTests -B
-
-# 构建 Native Image
-RUN cd halo-core && mvn package -Dnative -DskipTests -B
-
-# 运行阶段
-FROM ubuntu:22.04
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    tzdata \
-    && rm -rf /var/lib/apt/lists/*
-
-# 设置时区
-ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# 使用 Distroless 镜像（最小化）
+FROM gcr.io/distroless/base-debian12
 
 WORKDIR /app
 
-# 复制 Native 可执行文件
-COPY --from=builder /build/halo-core/target/halo-core-1.0.0-SNAPSHOT-runner /app/halo
+# 复制 Native 可执行文件（从本地或 CI 构建的）
+COPY halo-core/target/halo-core-1.0.0-SNAPSHOT-runner /app/halo
 
 # Halo 环境变量
 ENV HALO_WORK_DIR=/root/.halo2
 
-# 创建工作目录
-RUN mkdir -p ${HALO_WORK_DIR}
+# 设置用户
+USER 65534:65534
 
 EXPOSE 8090
 

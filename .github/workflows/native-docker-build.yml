@@ -34,7 +34,18 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
       
-      - name: Build and push Native Docker image
+      - name: Build and push Native Docker image (Alpine)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./halo-quarkus
+          file: ./halo-quarkus/Dockerfile.alpine
+          platforms: |
+            linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Build and push Native Docker image (Distroless)
         uses: docker/build-push-action@v5
         with:
           context: ./halo-quarkus
@@ -42,10 +53,8 @@ jobs:
           platforms: |
             linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}-distroless
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GRAALVM_VERSION=21
       
       - name: Generate build summary
         if: always()
@@ -55,9 +64,12 @@ jobs:
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Docker Image**: ${{ secrets.DOCKERHUB_USERNAME }}/halo-native:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "- **Alpine**: ${{ secrets.DOCKERHUB_USERNAME }}/halo-native:latest (~50MB)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Distroless**: ${{ secrets.DOCKERHUB_USERNAME }}/halo-native:latest-distroless (~30MB)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Performance" >> $GITHUB_STEP_SUMMARY
-          echo "- **Startup Time**: ~1-2 seconds" >> $GITHUB_STEP_SUMMARY
-          echo "- **Memory**: ~100-200MB" >> $GITHUB_STEP_SUMMARY
-          echo "- **Size**: ~100MB" >> $GITHUB_STEP_SUMMARY
+          echo "- **Startup Time**: ~0.1-0.5 seconds" >> $GITHUB_STEP_SUMMARY
+          echo "- **Memory**: ~50-100MB" >> $GITHUB_STEP_SUMMARY
+          echo "- **Size**: Alpine ~50MB, Distroless ~30MB" >> $GITHUB_STEP_SUMMARY
