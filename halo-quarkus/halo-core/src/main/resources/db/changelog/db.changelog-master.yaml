@@ -337,29 +337,28 @@ databaseChangeLog:
                     references: tags(id)
             primaryKey:
               columnNames: post_id, tag_id
-  
+
   - changeSet:
-      id: insert-default-admin-user
+      id: create-settings-table
       author: halo
       changes:
-        - insert:
-            tableName: users
+        - createTable:
+            tableName: settings
             columns:
               - column:
-                  name: username
-                  value: admin
+                  name: key
+                  type: VARCHAR(100)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
               - column:
-                  name: password
-                  value: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH
+                  name: value
+                  type: TEXT
               - column:
-                  name: email
-                  value: admin@halo.io
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
               - column:
-                  name: display_name
-                  value: Administrator
-              - column:
-                  name: role
-                  value: SUPER_ADMIN
-              - column:
-                  name: enabled
-                  value: true
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP

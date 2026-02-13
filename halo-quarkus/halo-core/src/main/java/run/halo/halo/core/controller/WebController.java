@@ -9,6 +9,7 @@ import io.qute.TemplateInstance;
 import run.halo.halo.core.theme.ThemeEngine;
 import run.halo.halo.core.entity.Post;
 import run.halo.halo.core.service.PostService;
+import run.halo.halo.core.service.SettingService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,11 +25,22 @@ public class WebController {
     @Inject
     PostService postService;
     
+    @Inject
+    SettingService settingService;
+    
     @GET
     public TemplateInstance index() {
         Map<String, Object> data = new HashMap<>();
         data.put("title", "Halo Quarkus Blog");
         return themeEngine.render("index", data);
+    }
+    
+    @GET
+    @Path("/install")
+    public TemplateInstance install() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", "Install Halo Quarkus");
+        return themeEngine.render("install", data);
     }
     
     @GET
