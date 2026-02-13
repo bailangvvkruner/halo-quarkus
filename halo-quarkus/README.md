@@ -9,26 +9,24 @@ GitHub: https://github.com/bailangvvkruner/halo-quarkus
 - **极快启动时间**: 1-3秒启动（相比 Spring Boot 的 15-30秒）
 - **低内存占用**: 运行时仅需 150-300MB
 - **高并发性能**: 支持高并发访问，QPS 提升 2-3倍
-- **响应式架构**: 基于 Reactive 编程模型
-- **完善的博客功能**:
-  - 文章和单页管理
-  - 分类和标签系统
-  - 评论和回复功能
-  - 主题系统
-  - 插件系统
-  - 全文搜索（基于 Lucene）
-  - 附件管理
-- **安全可靠**: JWT 认证 + OAuth2 支持
+- **Extension 架构**: 参考 Halo 的 Extension 设计
+- **首次安装**: 首次访问自动进入安装流程
 - **云原生支持**: 支持 GraalVM 原生编译
 - **Docker 一键部署**: 完善的容器化支持
 
+## 架构设计
+
+采用与 Halo 类似的 Extension 架构：
+
+```
+Extension (基类)
+├── Metadata (元数据)
+├── User (用户)
+├── ConfigMap (配置)
+└── SystemState (系统状态)
+```
+
 ## 快速开始
-
-### 前置要求
-
-- Java 21+
-- Maven 3.9+
-- PostgreSQL 14+ (或使用 Docker Compose)
 
 ### 使用 Docker Compose 一键启动
 
@@ -38,16 +36,12 @@ cd halo-quarkus
 docker-compose up -d
 ```
 
-访问 http://localhost:8090
+访问 http://localhost:8090/system/setup
 
-**首次访问**:
-首次访问时会自动跳转到安装页面，创建管理员账号：
-- 设置用户名
-- 设置密码
-- 设置邮箱
-- 设置博客标题
-
-安装完成后即可登录使用博客系统。
+**首次安装**:
+1. 填写管理员信息（用户名、密码、邮箱、站点标题）
+2. 完成安装后自动跳转到控制台
+3. 系统标记为已安装，不再允许重复安装
 
 ### 本地开发
 
@@ -59,109 +53,41 @@ mvn quarkus:dev
 
 ## API 文档
 
-### 认证接口
+### 安装相关接口
 
-#### 登录
+#### 检查是否已安装
 ```bash
-POST /api/auth/login
+GET /system/is-installed
+```
+
+响应：
+```json
+{
+  "installed": false
+}
+```
+
+#### 获取安装页面
+```bash
+GET /system/setup
+```
+
+返回 HTML 安装页面。
+
+#### 执行安装
+```bash
+POST /system/setup
 Content-Type: application/json
 
 {
   "username": "admin",
-  "password": "admin123"
+  "password": "Admin123",
+  "email": "admin@example.com",
+  "siteTitle": "My Blog"
 }
 ```
 
-#### 获取当前用户
-```bash
-GET /api/auth/me
-Authorization: Bearer <token>
-```
-
-### 文章接口
-
-#### 获取所有文章
-```bash
-GET /api/posts
-```
-
-#### 获取已发布文章
-```bash
-GET /api/posts/published
-```
-
-#### 创建文章
-```bash
-POST /api/posts
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "title": "Hello Quarkus",
-  "slug": "hello-quarkus",
-  "content": "This is my first post",
-  "status": "PUBLISHED",
-  "authorId": 1
-}
-```
-
-#### 更新文章
-```bash
-PUT /api/posts/{id}
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "title": "Updated Title",
-  "content": "Updated content"
-}
-```
-
-#### 删除文章
-```bash
-DELETE /api/posts/{id}
-Authorization: Bearer <token>
-```
-
-### 评论接口
-
-#### 获取评论
-```bash
-GET /api/comments/target/{targetId}/{targetType}
-```
-
-#### 创建评论
-```bash
-POST /api/comments
-Content-Type: application/json
-
-{
-  "content": "Great post!",
-  "author": "Guest",
-  "email": "guest@example.com",
-  "targetId": 1,
-  "targetType": "POST"
-}
-```
-
-### 主题接口
-
-#### 获取所有主题
-```bash
-GET /api/themes
-Authorization: Bearer <token>
-```
-
-#### 设置活动主题
-```bash
-PUT /api/themes/active
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "theme": "default"
-}
-```
+成功返回 204 No Content。
 
 ## 配置
 
@@ -173,28 +99,9 @@ quarkus:
     name: halo-quarkus
   http:
     port: 8090
-  datasource:
-    db-kind: postgresql
-    username: halo
-    password: halo
-    jdbc:
-      url: jdbc:postgresql://localhost:5432/halo
-  smallrye-jwt:
-    sign-key-location: privateKey.pem
-    decrypt-key-location: publicKey.pem
 
 halo:
   work-dir: /root/.halo2
-  upload:
-    location: /root/.halo2/uploads
-    max-size: 10MB
-  theme:
-    location: /root/.halo2/themes
-  plugin:
-    location: /root/.halo2/plugins
-  search:
-    enabled: true
-    index-location: /root/.halo2/index
 ```
 
 ## 性能对比
@@ -211,58 +118,25 @@ halo:
 ```
 halo-quarkus/
 ├── halo-core/          # 核心模块
-│   ├── entity/         # 实体类
-│   ├── repository/     # 数据访问层
-│   ├── service/        # 业务逻辑层
-│   ├── controller/     # REST API 控制器
-│   ├── security/       # 安全和认证
-│   ├── search/         # 搜索服务
-│   ├── plugin/         # 插件系统
-│   └── theme/          # 主题引擎
-├── halo-api/          # API 定义
-├── halo-plugin/       # 插件开发
-├── halo-theme/        # 主题开发
-└── docs/              # 文档
+│   ├── extension/      # Extension 基类和实现
+│   ├── infra/          # 基础设施
+│   └── setup/          # 安装系统
 ```
 
 ## 开发指南
 
-### 创建新插件
+### 创建新的 Extension
 
 ```java
-@ApplicationScoped
-public class MyPlugin implements PluginExtension {
+public class MyExtension extends Extension {
+    private MySpec spec;
     
-    @Override
-    public String getName() {
-        return "My Plugin";
-    }
-    
-    @Override
-    public void onLoad() {
-    }
-    
-    @Override
-    public void onUnload() {
+    public MyExtension() {
+        setApiVersion("v1alpha1");
+        setKind("MyExtension");
+        setMetadata(new Metadata());
     }
 }
-```
-
-### 创建新主题
-
-主题模板使用 Qute 模板引擎:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{title}</title>
-</head>
-<body>
-    <h1>{post.title}</h1>
-    <div>{post.content}</div>
-</body>
-</html>
 ```
 
 ## 部署
@@ -280,12 +154,6 @@ docker run -d -p 8090:8090 halo-quarkus:latest
 docker-compose up -d
 ```
 
-### Kubernetes 部署
-
-```bash
-kubectl apply -f k8s/
-```
-
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
@@ -296,7 +164,7 @@ GPL-3.0 License
 
 ## 致谢
 
-- [Halo](https://github.com/halo-dev/halo) - 灵感来源
+- [Halo](https://github.com/halo-dev/halo) - 架构设计和灵感来源
 - [Quarkus](https://quarkus.io/) - 强大的基础框架
 - [SmallRye](https://www.smallrye.io/) - 微服务技术栈
 
