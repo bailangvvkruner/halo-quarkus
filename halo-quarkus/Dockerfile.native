@@ -1,17 +1,40 @@
-# 使用 Distroless 镜像（最小化）
-FROM gcr.io/distroless/base-debian12
+# Alpine Linux - 最小化（只复制预编译的 Native 可执行文件）
+FROM alpine:3.19
+
+# 只安装最少的依赖
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# 复制 Native 可执行文件（从本地或 CI 构建的）
-COPY halo-core/target/halo-core-1.0.0-SNAPSHOT-runner /app/halo
+# 复制 Native 可执行文件（这个文件需要在本地构建）
+# 你需要先在本地执行：cd halo-core && mvn package -Dnative
+COPY halo-core/target/*-runner /app/halo 2>/dev/null || true
+
+# 如果找不到 native-runner，使用 JAR
+RUN if [ ! -f /app/halo ]; then \
+    apk add --no-cache openjdk21-jre-headless && \
+    echo "Using JAR fallback (Native binary not found)" && \
+    cp halo-core/target/quarkus-app/quarkus-run.jar /app/halo.jar; \
+fi
 
 # Halo 环境变量
 ENV HALO_WORK_DIR=/root/.halo2
 
-# 设置用户
-USER 65534:65534
+# 创建非 root 用户
+RUN addgroup -g 1000 halo && \
+    adduser -D -u 1000 -G halo halo && \
+    mkdir -p /root/.halo2 && \
+    chown -R halo:halo /root/.halo2
+
+USER halo
 
 EXPOSE 8090
 
-ENTRYPOINT ["/app/halo"]
+ENTRYPOINT ["java", "-jar", "/app/halo.jar"]

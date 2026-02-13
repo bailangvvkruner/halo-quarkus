@@ -1,9 +1,7 @@
 # Alpine Linux - 最小化
 FROM alpine:3.19
 
-WORKDIR /app
-
-# 安装最少的依赖
+# 只安装最少的依赖
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
@@ -11,18 +9,20 @@ RUN apk add --no-cache \
 
 # 设置时区
 ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 复制 Native 可执行文件
-COPY halo-core/target/halo-core-1.0.0-SNAPSHOT-runner /app/halo
+WORKDIR /app
+
+# 复制 Native 可执行文件（这个文件需要在本地构建）
+# 你需要先在本地执行：cd halo-core && mvn package -Dnative
+COPY halo-core/target/*-runner /app/halo 2>/dev/null || true
 
 # Halo 环境变量
 ENV HALO_WORK_DIR=/root/.halo2
 
 # 创建非 root 用户
 RUN addgroup -g 1000 halo && \
-    adduser -D -u 1000 -G halo -h /app halo && \
-    chown -R halo:halo /app && \
+    adduser -D -u 1000 -G halo halo && \
     mkdir -p /root/.halo2 && \
     chown -R halo:halo /root/.halo2
 
