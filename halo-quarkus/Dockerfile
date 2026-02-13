@@ -3,13 +3,7 @@ FROM maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-# 复制 pom.xml 并下载依赖（利用 Docker 缓存）
-COPY pom.xml .
-COPY halo-core/pom.xml halo-core/
-
-RUN mvn dependency:go-offline -B
-
-# 复制源代码
+# 复制所有源代码
 COPY . .
 
 # 构建项目
