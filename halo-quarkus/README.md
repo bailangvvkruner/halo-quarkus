@@ -1,5 +1,7 @@
 # Halo Quarkus - 高性能博客系统
 
+GitHub: https://github.com/bailangvvkg/halo-quarkus
+
 基于 Quarkus 框架构建的高性能博客系统，专注于极致性能和低资源消耗。
 
 ## 特性
@@ -31,7 +33,7 @@
 ### 使用 Docker Compose 一键启动
 
 ```bash
-git clone https://github.com/bailangvvking/halo-quarkus.git
+git clone https://github.com/bailangvvkg/halo-quarkus.git
 cd halo-quarkus
 docker-compose up -d
 ```
@@ -295,5 +297,5 @@ GPL-3.0 License
 
 ## 联系方式
 
-- GitHub: https://github.com/bailangvvking/halo-quarkus
-- Issues: https://github.com/bailangvvking/halo-quarkus/issues
+- GitHub: https://github.com/bailangvvkg/halo-quarkus
+- Issues: https://github.com/bailangvvkg/halo-quarkus/issues
