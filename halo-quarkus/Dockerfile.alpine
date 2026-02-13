@@ -13,18 +13,29 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# 复制 Native 可执行文件（这个文件需要在本地构建）
-# 你需要先在本地执行：cd halo-core && mvn package -Dnative
-COPY halo-core/target/*-runner /app/halo 2>/dev/null || true
+# 复制 Native 可执行文件（通配符匹配）
+COPY halo-core/target/*runner /app/halo 2>/dev/null || true
+
+# 如果没有 Native 可执行文件，使用 JAR
+RUN if [ ! -f /app/halo ]; then \
+    echo "Native binary not found, using JAR..." && \
+    apk add --no-cache openjdk21-jre-headless && \
+    cp halo-core/target/*.jar /app/halo.jar; \
+    echo "ENTRYPOINT [\"java\", \"-jar\", \"/app/halo.jar\"]" > /app/entrypoint.sh; \
+    chmod +x /app/entrypoint.sh; \
+else \
+    chmod +x /app/halo; \
+fi
 
 # Halo 环境变量
 ENV HALO_WORK_DIR=/root/.halo2
 
 # 创建非 root 用户
 RUN addgroup -g 1000 halo && \
-    adduser -D -u 1000 -G halo halo && \
+    adduser -D -u 1000 -G halo -h /app halo && \
     mkdir -p /root/.halo2 && \
-    chown -R halo:halo /root/.halo2
+    chown -R halo:halo /root/.halo2 && \
+    chown -R halo:halo /app
 
 USER halo
 
