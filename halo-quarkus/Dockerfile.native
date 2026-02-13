@@ -1,32 +1,23 @@
 # 多阶段构建 - 构建阶段
-FROM ghcr.io/graalvm/native-image-community:21 as builder
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 WORKDIR /build
 
-# 安装必要工具
-RUN microdnf install -y findutils git
+# 复制 POM 文件
+COPY pom.xml .
+COPY halo-core/pom.xml halo-core/
 
-# 复制 Gradle Wrapper
-COPY gradlew .
-COPY gradle gradle/
-COPY gradlew.bat .
-COPY .gradle .gradle/
-COPY gradle.properties .
+# 下载依赖（利用缓存）
+RUN mvn dependency:go-offline -B
 
-# 复制项目文件
-COPY api api/
-COPY application application/
-COPY platform platform/
-COPY buildSrc buildSrc/
+# 复制所有源代码
+COPY . .
 
-# 给予执行权限
-RUN chmod +x gradlew
+# 构建 JAR
+RUN mvn clean package -DskipTests -B
 
-# 构建 JAR（先构建普通 JAR）
-RUN ./gradlew :application:bootJar -x check --no-daemon
-
-# 使用 Gradle Native 插件编译 Native Image
-RUN ./gradlew :application:nativeCompile -x check --no-daemon
+# 构建 Native Image
+RUN cd halo-core && mvn package -Dnative -DskipTests -B
 
 # 运行阶段
 FROM ubuntu:22.04
@@ -42,13 +33,11 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# 从构建阶段复制 Native 可执行文件
-COPY --from=builder /build/application/build/native/nativeCompile/application /app/halo
+# 复制 Native 可执行文件
+COPY --from=builder /build/halo-core/target/halo-core-1.0.0-SNAPSHOT-runner /app/halo
 
 # Halo 环境变量
-ENV HALO_WORK_DIR=/root/.halo2 \
-    JAVA_OPTS="" \
-    SPRING_CONFIG_LOCATION="optional:classpath:/;optional:file:/root/.halo2/"
+ENV HALO_WORK_DIR=/root/.halo2
 
 # 创建工作目录
 RUN mkdir -p ${HALO_WORK_DIR}
