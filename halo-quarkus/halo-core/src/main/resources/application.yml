@@ -1,0 +1,77 @@
+quarkus:
+  application:
+    name: halo-quarkus
+    version: 1.0.0-SNAPSHOT
+  
+  http:
+    port: 8090
+    host: 0.0.0.0
+    auth:
+      permission:
+        enabled: false
+  
+  datasource:
+    db-kind: postgresql
+    username: ${DB_USERNAME:halo}
+    password: ${DB_PASSWORD:halo}
+    jdbc:
+      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:halo}
+      max-size: 20
+      min-size: 5
+    reactive:
+      url: postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:halo}
+      max-size: 20
+  
+  hibernate-orm:
+    database:
+      generation: update
+    sql-load-script: import.sql
+    log:
+      sql: false
+  
+  liquibase:
+    migrate-at-start: true
+    change-log: db/changelog/db.changelog-master.yaml
+  
+  cache:
+    caffeine:
+      halo:
+        initial-capacity: 10
+        maximum-size: 100
+        expire-after-write: 30m
+  
+  scheduler:
+    enabled: true
+  
+  log:
+    level: INFO
+    category:
+      run.halo.halo: DEBUG
+
+  smallrye-jwt:
+    sign-key-location: privateKey.pem
+    decrypt-key-location: publicKey.pem
+    mp-jwt:
+      verify:
+        publickey:
+          location: publicKey.pem
+      token:
+        header: Authorization
+        issuer: https://halo.quarkus.io
+        audiences: halo
+
+  oidc:
+    enabled: false
+
+halo:
+  work-dir: ${HALO_WORK_DIR:/root/.halo2}
+  upload:
+    location: ${HALO_UPLOAD_DIR:/root/.halo2/uploads}
+    max-size: 10MB
+  theme:
+    location: ${HALO_THEME_DIR:/root/.halo2/themes}
+  plugin:
+    location: ${HALO_PLUGIN_DIR:/root/.halo2/plugins}
+  search:
+    enabled: true
+    index-location: ${HALO_INDEX_DIR:/root/.halo2/index}
