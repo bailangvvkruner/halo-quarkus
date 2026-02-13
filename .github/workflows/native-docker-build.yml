@@ -37,8 +37,8 @@ jobs:
       - name: Build and push Native Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile.native
+          context: ./halo-quarkus
+          file: ./halo-quarkus/Dockerfile.native
           platforms: |
             linux/amd64
           push: true
